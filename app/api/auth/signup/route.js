@@ -53,11 +53,11 @@ export async function POST(request) {
         const validatedData = signupSchema.parse(dataForValidation);
 
         // Check if email already exists
-        const existingEmail = await prisma.user.findUnique({
+        const existingUser = await prisma.user.findUnique({
             where: { email: validatedData.email },
         });
 
-        if (existingEmail) {
+        if (existingUser) {
             return NextResponse.json(
                 { error: 'Email already registered' },
                 { status: 400 }
@@ -105,8 +105,7 @@ export async function POST(request) {
         const hashedPassword = await hashPassword(validatedData.password);
 
         // Generate verification token
-        const verificationToken = generateVerificationToken();
-        const verificationTokenExpiry = generateTokenExpiry();
+        const { token, expiry } = generateVerificationToken();
 
         // Create company first
         const company = await prisma.company.create({
@@ -130,11 +129,26 @@ export async function POST(request) {
             },
         });
 
-        // In production, send email with verification link
-        // For now, we'll return the token in the response (for development only)
-        const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${verificationToken}`;
+            // Create HR user
+            const user = await tx.user.create({
+                data: {
+                    email: validatedData.email,
+                    password: hashedPassword,
+                    name: validatedData.name,
+                    phone: validatedData.phone,
+                    role: 'ADMIN', // HR is ADMIN
+                    companyId: company.id,
+                    verificationToken: token,
+                    verificationTokenExpiry: expiry,
+                    emailVerified: true, // Auto-verify HR accounts
+                },
+            });
 
-        console.log('Verification URL:', verificationUrl);
+            return { company, user };
+        });
+
+        // In production, send verification email here
+        const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
 
         return NextResponse.json(
             {
@@ -146,6 +160,10 @@ export async function POST(request) {
                     name: user.name,
                     companyName: company.name,
                 },
+                // For development only - remove in production
+                ...(process.env.NODE_ENV === 'development' && {
+                    verificationUrl,
+                }),
             },
             { status: 201 }
         );

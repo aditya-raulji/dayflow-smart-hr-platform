@@ -1,10 +1,9 @@
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { SignupForm } from '@/components/auth/signup-form';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export const metadata = {
-    title: 'Sign Up - Dayflow HR',
-    description: 'Create your Dayflow account',
+    title: 'Register - Dayflow HR',
+    description: 'Create your HR account',
 };
 
 export default function RegisterPage() {
