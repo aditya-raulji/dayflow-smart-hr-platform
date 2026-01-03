@@ -25,7 +25,7 @@ export async function middleware(request) {
         if (token.role === 'ADMIN') {
             return NextResponse.redirect(new URL('/admin', request.url));
         } else {
-            return NextResponse.redirect(new URL('/dashboard/profile', request.url));
+            return NextResponse.redirect(new URL('/dashboard', request.url));
         }
     }
 
@@ -42,7 +42,7 @@ export async function middleware(request) {
     if (token) {
         // Admin routes
         if (pathname.startsWith('/admin') && token.role !== 'ADMIN') {
-            return NextResponse.redirect(new URL('/dashboard/profile', request.url));
+            return NextResponse.redirect(new URL('/dashboard', request.url));
         }
 
         // Employee routes (if needed in future)
@@ -64,6 +64,6 @@ export const config = {
          * - public folder
          * - api routes
          */
-        '/((?!_next/static|_next/image|favicon.ico|public|api|uploads).*)',
+        '/((?!_next/static|_next/image|favicon.ico|public|api).*)',
     ],
 };
