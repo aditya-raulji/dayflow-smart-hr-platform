@@ -1,47 +1,27 @@
-import Link from 'next/link';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { SignupForm } from '@/components/auth/signup-form';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export const metadata = {
-    title: 'Sign Up - Dayflow HR',
-    description: 'Create your Dayflow account',
+    title: 'Register - Dayflow HR',
+    description: 'Create your HR account',
 };
 
 export default function RegisterPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
-                {/* Logo and Branding */}
-                <div className="text-center mb-8">
-                    <h1 className="text-4xl font-bold text-primary-600 mb-2">Dayflow</h1>
-                    <p className="text-gray-600 italic">Every workday, perfectly aligned.</p>
-                </div>
-
-                {/* Registration Card */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Create Account</CardTitle>
-                        <CardDescription>
-                            Join Dayflow HR Management System
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <SignupForm />
-
-                        <div className="mt-6 text-center">
-                            <p className="text-sm text-gray-600">
-                                Already have an account?{' '}
-                                <Link
-                                    href="/auth/login"
-                                    className="text-primary-600 hover:text-primary-700 font-medium"
-                                >
-                                    Sign In
-                                </Link>
-                            </p>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+        <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-md">
+                <CardHeader className="text-center">
+                    <div className="mb-4">
+                        <h1 className="text-3xl font-bold text-primary-600">Dayflow</h1>
+                        <p className="text-sm text-gray-500">Human Resource Management System</p>
+                    </div>
+                    <CardTitle className="text-2xl">Create HR Account</CardTitle>
+                    <p className="text-sm text-gray-600">Register your company and start managing employees</p>
+                </CardHeader>
+                <CardContent>
+                    <SignupForm />
+                </CardContent>
+            </Card>
         </div>
     );
 }
