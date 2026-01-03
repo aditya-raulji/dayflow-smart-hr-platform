@@ -57,6 +57,7 @@ export const authOptions = {
                     employeeId: user.employeeId,
                     companyId: user.companyId,
                     companyName: user.company?.name,
+                    companyLogo: user.company?.logo,
                 };
             },
         }),
@@ -69,6 +70,7 @@ export const authOptions = {
                 token.employeeId = user.employeeId;
                 token.companyId = user.companyId;
                 token.companyName = user.companyName;
+                token.companyLogo = user.companyLogo;
             }
             return token;
         },
@@ -79,6 +81,7 @@ export const authOptions = {
                 session.user.employeeId = token.employeeId;
                 session.user.companyId = token.companyId;
                 session.user.companyName = token.companyName;
+                session.user.companyLogo = token.companyLogo;
             }
             return session;
         },

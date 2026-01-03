@@ -47,10 +47,40 @@ export async function GET(request) {
             },
         });
 
-        // TODO: Get attendance stats (will be implemented in attendance module)
-        const presentToday = 0;
-        const onLeave = 0;
-        const pendingLeaves = 0;
+        // Get attendance stats for today (00:00:00 to 23:59:59)
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        const endOfToday = new Date();
+        endOfToday.setHours(23, 59, 59, 999);
+
+        const presentToday = await prisma.attendance.count({
+            where: {
+                user: { companyId: companyId },
+                date: {
+                    gte: startOfToday,
+                    lte: endOfToday,
+                },
+                checkIn: { not: null },
+            },
+        });
+
+        const onLeave = await prisma.leaveRequest.count({
+            where: {
+                user: { companyId: companyId },
+                startDate: { lte: endOfToday },
+                endDate: { gte: startOfToday },
+                status: 'APPROVED',
+            },
+        });
+
+        const pendingLeaves = await prisma.leaveRequest.count({
+            where: {
+                user: { companyId: companyId },
+                status: 'PENDING',
+            },
+        });
+
+        const absentCount = totalEmployees - presentToday - onLeave;
 
         return NextResponse.json({
             stats: {
@@ -58,6 +88,7 @@ export async function GET(request) {
                 presentToday,
                 onLeave,
                 pendingLeaves,
+                absentToday: absentCount > 0 ? absentCount : 0,
             },
             recentEmployees,
         });

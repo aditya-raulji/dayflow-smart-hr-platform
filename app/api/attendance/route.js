@@ -120,23 +120,100 @@ export async function GET(request) {
         }
 
         const { searchParams } = new URL(request.url);
-        const userId = searchParams.get('userId') || session.user.id;
+        const userId = searchParams.get('userId');
+        const statusOnly = searchParams.get('statusOnly') === 'true';
+        const dateStr = searchParams.get('date'); // YYYY-MM-DD
+        const search = searchParams.get('search');
 
-        // Only admin can view other users' attendance
-        if (userId !== session.user.id && session.user.role !== 'ADMIN') {
+        // Admin can view all, Employees only their own
+        if (session.user.role !== 'ADMIN' && userId && userId !== session.user.id) {
             return NextResponse.json(
                 { error: 'Unauthorized' },
                 { status: 401 }
             );
         }
 
+        const effectiveUserId = userId || (session.user.role === 'ADMIN' ? null : session.user.id);
+
+        if (statusOnly) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            const attendance = await prisma.attendance.findFirst({
+                where: {
+                    userId: session.user.id,
+                    date: {
+                        gte: today,
+                    },
+                },
+            });
+
+            return NextResponse.json({
+                checkedIn: !!(attendance && attendance.checkIn && !attendance.checkOut),
+                checkedOut: !!(attendance && attendance.checkOut),
+                attendance
+            }, { status: 200 });
+        }
+
+        let where = {};
+        if (effectiveUserId) {
+            where.userId = effectiveUserId;
+        }
+
+        if (dateStr) {
+            const startDate = new Date(dateStr);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(dateStr);
+            endDate.setHours(23, 59, 59, 999);
+            where.date = {
+                gte: startDate,
+                lte: endDate,
+            };
+        }
+
+        if (search && session.user.role === 'ADMIN') {
+            where.user = {
+                OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { employeeId: { contains: search, mode: 'insensitive' } },
+                ]
+            };
+        }
+
         const attendance = await prisma.attendance.findMany({
-            where: { userId },
+            where,
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        employeeId: true,
+                    }
+                }
+            },
             orderBy: { date: 'desc' },
-            take: 30,
         });
 
-        return NextResponse.json({ attendance }, { status: 200 });
+        // Helper to formatting hours
+        const formattedAttendance = attendance.map(record => {
+            let workHours = 0;
+            let extraHours = 0;
+
+            if (record.checkIn && record.checkOut) {
+                const diff = (new Date(record.checkOut) - new Date(record.checkIn)) / (1000 * 60 * 60);
+                workHours = Math.floor(diff * 100) / 100;
+                if (workHours > 8) {
+                    extraHours = Math.floor((workHours - 8) * 100) / 100;
+                }
+            }
+
+            return {
+                ...record,
+                workHours: workHours.toFixed(1),
+                extraHours: extraHours.toFixed(1)
+            };
+        });
+
+        return NextResponse.json({ attendance: formattedAttendance }, { status: 200 });
     } catch (error) {
         console.error('Get attendance error:', error);
         return NextResponse.json(
@@ -145,3 +222,5 @@ export async function GET(request) {
         );
     }
 }
+
+

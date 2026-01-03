@@ -5,6 +5,89 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { NotificationBell } from '@/components/ui/notification-bell';
+
+function AttendanceActions() {
+    const { data: session } = useSession();
+    const [status, setStatus] = useState({ checkedIn: false, checkedOut: false });
+    const [loading, setLoading] = useState(true);
+    const [processing, setProcessing] = useState(false);
+
+    const fetchStatus = async () => {
+        try {
+            const res = await fetch('/api/attendance?statusOnly=true');
+            const data = await res.json();
+            setStatus({ checkedIn: data.checkedIn, checkedOut: data.checkedOut });
+        } catch (err) {
+            console.error('Failed to fetch attendance status', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (session?.user?.id) {
+            fetchStatus();
+        }
+    }, [session]);
+
+    const handleAttendance = async (action) => {
+        setProcessing(true);
+        try {
+            const res = await fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                await fetchStatus();
+                // Optionally trigger a custom event to notify UserAvatar
+                window.dispatchEvent(new Event('attendanceUpdated'));
+            } else {
+                alert(data.error || 'Something went wrong');
+            }
+        } catch (err) {
+            console.error('Attendance error', err);
+            alert('Failed to process attendance');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    if (loading) return <div className="animate-pulse bg-gray-50 h-10 w-32 border border-black italic font-mono text-[10px] flex items-center justify-center">SYNCING...</div>;
+
+    if (status.checkedOut) {
+        return (
+            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-black uppercase tracking-widest bg-white px-4 py-2 border border-black shadow-[2px_2px_0_0_#000]">
+                TERMINATED FOR TODAY
+            </div>
+        );
+    }
+
+    if (status.checkedIn) {
+        return (
+            <button
+                onClick={() => handleAttendance('checkout')}
+                disabled={processing}
+                className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-6 py-2 border border-black font-black text-[10px] uppercase tracking-widest shadow-[4px_4px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+            >
+                {processing ? 'EXITING...' : 'FORCE CHECK OUT'}
+            </button>
+        );
+    }
+
+    return (
+        <button
+            onClick={() => handleAttendance('checkin')}
+            disabled={processing}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 border border-black font-black text-[10px] uppercase tracking-widest shadow-[4px_4px_0_0_#000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all disabled:opacity-50"
+        >
+            {processing ? 'ENTERING...' : 'INITIATE CHECK IN'}
+        </button>
+    );
+}
+
 
 export default function EmployeeDashboard() {
     const { data: session } = useSession();
@@ -52,112 +135,114 @@ export default function EmployeeDashboard() {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            {/* Top Navigation */}
-            <nav className="bg-white shadow-md border-b border-gray-200">
+            {/* Lined Top Navigation */}
+            <nav className="bg-white border-b border-black">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
-                                    <span className="text-white font-bold text-xl">D</span>
+                    <div className="flex justify-between items-center h-20">
+                        <div className="flex items-center gap-12">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 border border-black flex items-center justify-center overflow-hidden bg-white font-black text-xs uppercase cursor-pointer">
+                                    {session?.user?.companyLogo ? (
+                                        <img src={session.user.companyLogo} alt="Logo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-black font-black italic">LOGO</span>
+                                    )}
                                 </div>
                                 <div>
-                                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
+                                    <h1 className="text-2xl font-black text-black tracking-tighter uppercase leading-none">
                                         Dayflow
                                     </h1>
-                                    {session?.user?.companyName && (
-                                        <p className="text-xs text-gray-500">{session.user.companyName}</p>
-                                    )}
+                                    <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">
+                                        {session?.user?.companyName || 'STAFF PORTAL'}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="flex gap-1">
-                                <Link href="/dashboard" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
-                                    Employees
+                            <div className="flex border border-black bg-white overflow-hidden shadow-[2px_2px_0_0_#000]">
+                                <Link href="/dashboard" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-white bg-black border-r border-black hover:bg-gray-900 transition-colors">
+                                    Dashboard
                                 </Link>
-                                <Link href="/dashboard/attendance" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Link href="/dashboard/attendance" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black border-r border-black hover:bg-gray-100 transition-colors">
                                     Attendance
                                 </Link>
-                                <Link href="/dashboard/time-off" className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                <Link href="/dashboard/time-off" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black border-r border-black hover:bg-gray-100 transition-colors">
                                     Time Off
+                                </Link>
+                                <Link href="/dashboard/payroll" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-gray-100 transition-colors">
+                                    Payroll
                                 </Link>
                             </div>
                         </div>
 
-                        {/* User Avatar Dropdown */}
-                        <UserAvatar />
+                        <div className="flex items-center gap-4">
+                            <NotificationBell />
+                            <UserAvatar />
+                        </div>
                     </div>
                 </div>
             </nav>
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white rounded-lg shadow-lg">
+                <div className="border border-black bg-white shadow-[8px_8px_0_0_#000]">
                     {/* Header */}
-                    <div className="p-6 border-b">
-                        <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
+                    <div className="px-8 py-6 border-b border-black flex justify-between items-center bg-gray-50">
+                        <h2 className="text-xl font-black uppercase tracking-[0.2em]">Employee Profile</h2>
+                        <AttendanceActions />
                     </div>
 
                     {/* Profile Section */}
-                    <div className="p-8 border-b">
-                        <div className="flex items-start gap-8">
+                    <div className="p-10 border-b border-black">
+                        <div className="flex items-start gap-12">
                             {/* Profile Picture */}
-                            <div className="relative flex-shrink-0">
-                                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-pink-300 to-pink-400 flex items-center justify-center overflow-hidden shadow-lg">
+                            <div className="relative">
+                                <div className="w-40 h-40 border-2 border-black bg-white flex items-center justify-center overflow-hidden">
                                     {employee.profile?.profilePicture ? (
                                         <img src={employee.profile.profilePicture} alt="Profile" className="w-full h-full object-cover" />
                                     ) : (
-                                        <svg className="w-16 h-16 text-pink-600" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                        </svg>
+                                        <div className="w-full h-full bg-blue-50 flex items-center justify-center">
+                                            <svg className="w-20 h-20 text-black opacity-20" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
                                     )}
                                 </div>
-                                <button className="absolute bottom-2 right-2 w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center text-white hover:bg-gray-700 shadow-lg">
+                                <button className="absolute -bottom-2 -right-2 w-10 h-10 bg-black border border-white flex items-center justify-center text-white hover:bg-gray-900 transition-all shadow-lg active:scale-95">
                                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                     </svg>
                                 </button>
                             </div>
 
-                            {/* Employee Info - 2 Columns */}
-                            <div className="flex-1 grid grid-cols-2 gap-x-12 gap-y-4">
-                                {/* Left Column */}
-                                <div className="space-y-4">
-                                    <div>
-                                        <h3 className="text-2xl font-bold text-gray-900 mb-1">My Name</h3>
-                                        <p className="text-sm text-gray-600">{employee.name}</p>
+                            {/* Employee Info Grid */}
+                            <div className="flex-1 grid grid-cols-2 gap-x-16 gap-y-8">
+                                <div className="space-y-6">
+                                    <div className="border-l-4 border-black pl-4">
+                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Full Name</h3>
+                                        <p className="text-xl font-bold text-black uppercase">{employee.name}</p>
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Login ID</label>
-                                        <p className="text-gray-900">{employee.employeeId}</p>
+                                    <div className="border-l-4 border-black pl-4">
+                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Employee ID</h3>
+                                        <p className="text-lg font-mono font-bold text-blue-600">{employee.employeeId}</p>
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Email</label>
-                                        <p className="text-gray-900">{employee.email}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Mobile</label>
-                                        <p className="text-gray-900">{employee.phone || 'N/A'}</p>
+                                    <div className="border-l-4 border-black pl-4">
+                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Official Email</h3>
+                                        <p className="text-md font-bold text-gray-800">{employee.email}</p>
                                     </div>
                                 </div>
 
-                                {/* Right Column */}
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Company</label>
-                                        <p className="text-gray-900">{session?.user?.companyName || 'N/A'}</p>
+                                <div className="space-y-6">
+                                    <div className="border-l-4 border-black pl-4">
+                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Department</h3>
+                                        <p className="text-lg font-bold text-black uppercase">{employee.jobDetails?.department || 'STREET OPS'}</p>
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Department</label>
-                                        <p className="text-gray-900">{employee.jobDetails?.department || 'N/A'}</p>
+                                    <div className="border-l-4 border-black pl-4">
+                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Role / Position</h3>
+                                        <p className="text-lg font-bold text-black uppercase">{employee.jobDetails?.jobPosition || 'FIELD AGENT'}</p>
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Manager</label>
-                                        <p className="text-gray-900">{employee.jobDetails?.manager || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-500">Location</label>
-                                        <p className="text-gray-900">{employee.jobDetails?.workLocation || 'N/A'}</p>
+                                    <div className="border-l-4 border-black pl-4">
+                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Work Location</h3>
+                                        <p className="text-md font-bold text-gray-800 uppercase italic">Mumbai HQ - {employee.jobDetails?.workLocation || 'REMOTE'}</p>
                                     </div>
                                 </div>
                             </div>
@@ -165,35 +250,34 @@ export default function EmployeeDashboard() {
                     </div>
 
                     {/* Tabs */}
-                    <div className="border-b">
+                    <div className="border-b border-black bg-gray-50">
                         <div className="flex gap-0 px-8">
                             <button
                                 onClick={() => setActiveTab('resume')}
-                                className={`px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'resume'
-                                        ? 'border-gray-900 text-gray-900'
-                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                className={`px-10 py-4 font-black uppercase tracking-widest text-[10px] border-x border-black transition-all ${activeTab === 'resume'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-gray-500 hover:bg-gray-100'
                                     }`}
                             >
-                                Resume
+                                PROFILE DATA
                             </button>
                             <button
                                 onClick={() => setActiveTab('private')}
-                                className={`px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'private'
-                                        ? 'border-gray-900 text-gray-900'
-                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                className={`px-10 py-4 font-black uppercase tracking-widest text-[10px] border-r border-black transition-all ${activeTab === 'private'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-gray-500 hover:bg-gray-100'
                                     }`}
                             >
-                                Private Info
+                                BANK & KYC
                             </button>
-                            {/* NO SALARY TAB FOR EMPLOYEES */}
                             <button
                                 onClick={() => setActiveTab('security')}
-                                className={`px-6 py-3 border-b-2 font-medium transition-colors ${activeTab === 'security'
-                                        ? 'border-gray-900 text-gray-900'
-                                        : 'border-transparent text-gray-600 hover:text-gray-900'
+                                className={`px-10 py-4 font-black uppercase tracking-widest text-[10px] border-r border-black transition-all ${activeTab === 'security'
+                                    ? 'bg-black text-white'
+                                    : 'bg-white text-gray-500 hover:bg-gray-100'
                                     }`}
                             >
-                                Security
+                                SYSTEM ACCESS
                             </button>
                         </div>
                     </div>
@@ -207,93 +291,46 @@ export default function EmployeeDashboard() {
                             </div>
                         )}
 
-                        {/* Private Info Tab */}
+                        {/* Bank Details Content - MATCHING MOCKUP */}
                         {activeTab === 'private' && (
-                            <div className="grid grid-cols-2 gap-x-12 gap-y-6">
-                                {/* Left Column */}
-                                <div className="space-y-6">
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Date of Birth</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.dateOfBirth ? new Date(employee.profile.dateOfBirth).toLocaleDateString() : ''}
-                                        </p>
+                            <div className="grid grid-cols-2 border border-black divide-x divide-black bg-white shadow-[4px_4px_0_0_#000]">
+                                <div className="p-8 space-y-6">
+                                    <h3 className="text-sm font-black uppercase tracking-widest border-b border-black pb-2 mb-4 italic">Identity Verification</h3>
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-400 tracking-tighter uppercase">Nationality</label>
+                                            <p className="font-bold border-b border-gray-200 pb-1">{employee.profile?.nationality || 'INDIAN'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-gray-400 tracking-tighter uppercase">Gender</label>
+                                            <p className="font-bold border-b border-gray-200 pb-1 font-mono italic">{employee.profile?.gender || 'NOT SPECIFIED'}</p>
+                                        </div>
                                     </div>
                                     <div>
-                                        <label className="text-sm font-medium text-gray-600">Residing Address</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.residingAddress || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Nationality</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.nationality || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Personal Email</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.personalEmail || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Gender</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.gender || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Marital Status</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.maritalStatus || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Date of Joining</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.jobDetails?.dateOfJoining ? new Date(employee.jobDetails.dateOfJoining).toLocaleDateString() : ''}
-                                        </p>
+                                        <label className="text-[10px] font-black text-gray-400 tracking-tighter uppercase">Physical Address</label>
+                                        <p className="font-bold border-b border-gray-200 pb-1 italic text-blue-600">{employee.profile?.residingAddress || 'ADDRESS VERIFICATION PENDING'}</p>
                                     </div>
                                 </div>
 
-                                {/* Right Column - Bank Details */}
-                                <div className="space-y-6">
-                                    <h3 className="text-lg font-bold text-gray-900 mb-4">Bank Details</h3>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Account Number</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.accountNumber || ''}
-                                        </p>
+                                <div className="p-8 space-y-6 bg-gray-50/50">
+                                    <h3 className="text-sm font-black uppercase tracking-widest border-b border-black pb-2 mb-4 italic">Financial & Bank Records</h3>
+                                    <div className="grid grid-cols-2 gap-8">
+                                        <div>
+                                            <label className="text-[10px] font-black text-red-400 tracking-tighter uppercase">Permanent Account (PAN)</label>
+                                            <p className="font-mono font-bold border-b border-gray-200 pb-1">{employee.profile?.panNumber || 'REQUIRED'}</p>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-black text-green-400 tracking-tighter uppercase">UAN Number</label>
+                                            <p className="font-mono font-bold border-b border-gray-200 pb-1">{employee.profile?.uanNumber || 'REQUIRED'}</p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Bank Name</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.bankName || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">IFSC Code</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.ifscCode || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">PAN No</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.panNumber || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">UAN NO</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.profile?.uanNumber || ''}
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <label className="text-sm font-medium text-gray-600">Emp Code</label>
-                                        <p className="mt-1 text-gray-900 border-b border-gray-300 pb-2">
-                                            {employee.employeeId || ''}
-                                        </p>
+                                    <div className="bg-white border border-black p-4 mt-6">
+                                        <div className="flex justify-between items-center mb-2">
+                                            <p className="text-[10px] font-black uppercase">Bank Account</p>
+                                            <p className="text-[8px] font-mono text-gray-400">ENCRYPTED</p>
+                                        </div>
+                                        <p className="text-lg font-black tracking-widest font-mono italic">{employee.profile?.accountNumber || 'XXXX XXXX XXXX'}</p>
+                                        <p className="text-xs font-bold text-gray-600 mt-2 uppercase">{employee.profile?.bankName || 'AWAITING DETAILS'} - {employee.profile?.ifscCode || 'IFSC'}</p>
                                     </div>
                                 </div>
                             </div>

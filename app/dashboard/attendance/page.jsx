@@ -1,196 +1,156 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { NotificationBell } from '@/components/ui/notification-bell';
 
 export default function EmployeeAttendancePage() {
     const { data: session } = useSession();
     const [attendance, setAttendance] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [stats, setStats] = useState({
-        daysPresent: 0,
-        leavesCount: 0,
-        totalWorkingDays: 0,
-    });
+    const [stats, setStats] = useState({ present: 0, leaves: 0, total: 30 });
+    const [month, setMonth] = useState(new Date().getMonth() + 1);
 
     useEffect(() => {
-        fetchAttendance();
-    }, [currentMonth]);
+        if (session) {
+            fetchAttendance();
+        }
+    }, [session, month]);
 
     const fetchAttendance = async () => {
+        setLoading(true);
         try {
-            const response = await fetch('/api/attendance');
-            const data = await response.json();
-            setAttendance(data.attendance || []);
-
-            // Calculate stats
-            const present = data.attendance?.filter(a => a.status === 'PRESENT').length || 0;
-            setStats({
-                daysPresent: present,
-                leavesCount: 0,
-                totalWorkingDays: present,
-            });
-        } catch (error) {
-            console.error('Failed to fetch attendance:', error);
+            const res = await fetch(`/api/attendance?month=${month}`);
+            if (res.ok) {
+                const data = await res.json();
+                setAttendance(data.attendance);
+                setStats(data.summary || { present: data.attendance.length, leaves: 0, total: 30 });
+            }
+        } catch (err) {
+            console.error('Failed to fetch attendance:', err);
         } finally {
             setLoading(false);
         }
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-GB');
-    };
-
-    const formatTime = (dateString) => {
-        if (!dateString) return '-';
-        return new Date(dateString).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        });
-    };
-
-    const calculateWorkHours = (checkIn, checkOut) => {
-        if (!checkIn || !checkOut) return '00:00';
-        const diff = new Date(checkOut) - new Date(checkIn);
-        const hours = Math.floor(diff / 3600000);
-        const minutes = Math.floor((diff % 3600000) / 60000);
-        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-    };
-
-    const goToPreviousMonth = () => {
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-    };
-
-    const goToNextMonth = () => {
-        setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-    };
-
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Top Navigation */}
-            <nav className="bg-white shadow-sm border-b">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+            {/* Lined Top Navigation */}
+            <nav className="bg-white border-b border-black">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between items-center h-16">
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-3">
-                                <h1 className="text-2xl font-bold text-primary-600">Dayflow</h1>
-                                {session?.user?.companyName && (
-                                    <span className="text-sm text-gray-500">| {session.user.companyName}</span>
-                                )}
+                    <div className="flex justify-between items-center h-20">
+                        <div className="flex items-center gap-12">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 border border-black flex items-center justify-center overflow-hidden bg-white font-black text-xs uppercase cursor-pointer">
+                                    {session?.user?.companyLogo ? (
+                                        <img src={session.user.companyLogo} alt="Logo" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span className="text-black font-black italic">LOGO</span>
+                                    )}
+                                </div>
+                                <div>
+                                    <h1 className="text-2xl font-black text-black tracking-tighter uppercase leading-none">
+                                        Dayflow
+                                    </h1>
+                                    <p className="text-[10px] font-mono font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">
+                                        {session?.user?.companyName || 'STAFF PORTAL'}
+                                    </p>
+                                </div>
                             </div>
-                            <div className="flex gap-6">
-                                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-                                    My Profile
+
+                            <div className="flex border border-black bg-white overflow-hidden shadow-[2px_2px_0_0_#000]">
+                                <Link href="/dashboard" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black border-r border-black hover:bg-gray-100 transition-colors">
+                                    Dashboard
                                 </Link>
-                                <Link href="/dashboard/attendance" className="text-gray-900 font-medium border-b-2 border-primary-600 pb-1">
+                                <Link href="/dashboard/attendance" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-white bg-black border-r border-black hover:bg-gray-900 transition-colors">
                                     Attendance
                                 </Link>
-                                <Link href="/dashboard/time-off" className="text-gray-600 hover:text-gray-900">
+                                <Link href="/dashboard/time-off" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black border-r border-black hover:bg-gray-100 transition-colors">
                                     Time Off
+                                </Link>
+                                <Link href="/dashboard/payroll" className="px-8 py-3 text-[10px] font-black uppercase tracking-widest text-black hover:bg-gray-100 transition-colors">
+                                    Payroll
                                 </Link>
                             </div>
                         </div>
-                        <button
-                            onClick={() => signOut({ callbackUrl: '/auth/login' })}
-                            className="w-10 h-10 rounded-full flex items-center justify-center"
-                            title="Log Out"
-                        >
+
+                        <div className="flex items-center gap-4">
+                            <NotificationBell />
                             <UserAvatar />
-                        </button>
+                        </div>
                     </div>
                 </div>
             </nav>
 
-            {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div className="bg-white rounded-lg shadow">
-                    {/* Header */}
-                    <div className="p-6 border-b">
-                        <h2 className="text-2xl font-bold text-gray-900">Attendance</h2>
+                <div className="grid grid-cols-3 gap-0 border border-black mb-10 bg-white shadow-[4px_4px_0_0_#000]">
+                    <div className="p-8 border-r border-black">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 italic">CYCLE_PRESENCE</p>
+                        <p className="text-4xl font-mono font-black text-green-500 tracking-tighter">{stats.present.toString().padStart(2, '0')}</p>
                     </div>
+                    <div className="p-8 border-r border-black bg-gray-50/50">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 italic">DETECTED_ABSENCES</p>
+                        <p className="text-4xl font-mono font-black text-red-500 tracking-tighter">{stats.leaves.toString().padStart(2, '0')}</p>
+                    </div>
+                    <div className="p-8">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-2 italic">MONTH_EXPECTANCY</p>
+                        <p className="text-4xl font-mono font-black text-black tracking-tighter">{stats.total.toString().padStart(2, '0')}</p>
+                    </div>
+                </div>
 
-                    {/* Stats and Controls */}
-                    <div className="p-6 border-b">
-                        <div className="flex items-center justify-between mb-6">
-                            {/* Month Navigation */}
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={goToPreviousMonth}
-                                    className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
-                                >
-                                    ←
-                                </button>
-                                <button
-                                    onClick={goToNextMonth}
-                                    className="w-10 h-10 flex items-center justify-center border border-gray-300 rounded hover:bg-gray-50"
-                                >
-                                    →
-                                </button>
-                                <div className="px-4 py-2 border border-gray-300 rounded">
-                                    {currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' })}
-                                </div>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="flex gap-6">
-                                <div className="text-center">
-                                    <p className="text-sm text-gray-600">Count of days present</p>
-                                    <p className="text-2xl font-bold text-primary-600">{stats.daysPresent}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm text-gray-600">Leaves count</p>
-                                    <p className="text-2xl font-bold text-primary-600">{stats.leavesCount}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-sm text-gray-600">Total working days</p>
-                                    <p className="text-2xl font-bold text-primary-600">{stats.totalWorkingDays}</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Current Month Display */}
-                        <div className="text-center py-4 bg-gray-50 rounded">
-                            <p className="text-lg font-medium">{currentMonth.toLocaleString('default', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                <div className="border border-black bg-white shadow-[8px_8px_0_0_#000]">
+                    <div className="px-8 py-5 border-b border-black bg-gray-50 flex justify-between items-center">
+                        <h2 className="text-xs font-black uppercase tracking-[0.3em] font-mono italic">CHRONOLOGICAL_ATTENDANCE_LOG</h2>
+                        <div className="flex items-center gap-4">
+                            <span className="text-[10px] font-black text-gray-400 uppercase">FILTRATION</span>
+                            <select
+                                value={month}
+                                onChange={(e) => setMonth(parseInt(e.target.value))}
+                                className="bg-white border border-black px-4 py-2 text-[10px] font-black uppercase outline-none shadow-[2px_2px_0_0_#000] focus:shadow-none transition-all cursor-pointer"
+                            >
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                                    <option key={m} value={m}>{new Date(0, m - 1).toLocaleString('default', { month: 'long' }).toUpperCase()}</option>
+                                ))}
+                            </select>
                         </div>
                     </div>
-
-                    {/* Attendance Table */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-50 border-b">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Date</th>
-                                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Check In</th>
-                                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Check Out</th>
-                                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Work Hours</th>
-                                    <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Extra Hours</th>
+                    <div className="overflow-x-auto text-[10px]">
+                        <table className="w-full text-left">
+                            <thead>
+                                <tr className="bg-black text-white shrink-0">
+                                    <th className="px-8 py-5 font-black uppercase tracking-widest border-r border-white/20">Execution Date</th>
+                                    <th className="px-8 py-5 font-black uppercase tracking-widest border-r border-white/20">Inward Entry</th>
+                                    <th className="px-8 py-5 font-black uppercase tracking-widest border-r border-white/20">Outward Entry</th>
+                                    <th className="px-8 py-5 font-black uppercase tracking-widest text-center">Protocol Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200">
+                            <tbody className="divide-y divide-black">
                                 {loading ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                                            Loading attendance...
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan="4" className="px-8 py-20 text-center text-gray-400 font-mono tracking-[0.5em] animate-pulse">EXTRACTING METADATA...</td></tr>
                                 ) : attendance.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
-                                            No attendance records found
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan="4" className="px-8 py-20 text-center text-gray-400 italic font-black uppercase tracking-widest">ERROR: NO RECORDS DETECTED IN STORAGE</td></tr>
                                 ) : (
                                     attendance.map((record) => (
-                                        <tr key={record.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 text-sm text-gray-900">{formatDate(record.date)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{formatTime(record.checkIn)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{formatTime(record.checkOut)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">{calculateWorkHours(record.checkIn, record.checkOut)}</td>
-                                            <td className="px-6 py-4 text-sm text-gray-900">00:00</td>
+                                        <tr key={record.id} className="hover:bg-gray-50 transition-colors group">
+                                            <td className="px-8 py-5 border-r border-black font-black text-gray-600 uppercase">
+                                                {new Date(record.date).toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short' })}
+                                            </td>
+                                            <td className="px-8 py-5 border-r border-black font-mono font-bold text-blue-600 italic">
+                                                {record.checkIn ? new Date(record.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A'}
+                                            </td>
+                                            <td className="px-8 py-5 border-r border-black font-mono font-bold text-red-600 italic">
+                                                {record.checkOut ? new Date(record.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A'}
+                                            </td>
+                                            <td className="px-8 py-5 text-center">
+                                                <div className={`inline-flex px-3 py-1 border border-black font-black uppercase text-[8px] tracking-[0.2em] ${record.status === 'PRESENT' ? 'bg-green-500 text-white' :
+                                                    record.status === 'LATE' ? 'bg-yellow-400 text-black' :
+                                                        'bg-red-500 text-white'
+                                                    }`}>
+                                                    {record.status}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 )}

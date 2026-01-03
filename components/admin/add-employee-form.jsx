@@ -72,151 +72,170 @@ export function AddEmployeeForm() {
 
     if (success) {
         return (
-            <div className="max-w-2xl mx-auto p-6">
-                <div className="bg-green-50 border-2 border-green-500 rounded-lg p-6 mb-6">
-                    <h3 className="text-xl font-bold text-green-800 mb-4">
-                        ✓ Employee Created Successfully!
-                    </h3>
-                    <div className="space-y-3">
-                        <div className="bg-white p-4 rounded border border-green-200">
-                            <p className="text-sm text-gray-600">Employee ID</p>
-                            <p className="text-2xl font-bold text-primary-600">{success.employeeId}</p>
+            <div className="max-w-2xl mx-auto py-12">
+                <div className="bg-white border-[3px] border-black shadow-[16px_16px_0_0_#22c55e] p-10 mb-10">
+                    <div className="flex items-center gap-4 mb-8">
+                        <div className="w-12 h-12 bg-green-500 border-2 border-black flex items-center justify-center shadow-[4px_4px_0_0_#000]">
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" />
+                            </svg>
                         </div>
-                        <div className="bg-white p-4 rounded border border-green-200">
-                            <p className="text-sm text-gray-600">Temporary Password</p>
-                            <p className="text-2xl font-bold text-red-600">{success.password}</p>
+                        <div>
+                            <h3 className="text-2xl font-black text-black uppercase italic tracking-tight">ENTITY_INITIALIZED</h3>
+                            <p className="text-[10px] font-mono font-black text-gray-400 uppercase tracking-widest">Protocol validation successful</p>
                         </div>
-                        <div className="bg-yellow-50 border border-yellow-300 rounded p-3 mt-4">
-                            <p className="text-sm text-yellow-800">
-                                <strong>Important:</strong> Please save these credentials and provide them to the employee.
-                                The password cannot be retrieved later.
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="bg-gray-50 border border-black p-6 shadow-[4px_4px_0_0_#000]">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 font-mono">ASSIGNED_SYSTEM_ID</p>
+                            <p className="text-3xl font-black text-blue-600 font-mono italic">{success.employeeId}</p>
+                        </div>
+                        <div className="bg-black p-6 shadow-[4px_4px_0_0_#000]">
+                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-2 font-mono">TEMPORARY_ACCESS_TOKEN</p>
+                            <p className="text-3xl font-black text-red-500 font-mono tracking-tighter">{success.password}</p>
+                        </div>
+                        <div className="border border-black p-4 bg-yellow-50 italic">
+                            <p className="text-[10px] text-black font-black uppercase tracking-widest leading-loose">
+                                <span className="text-red-600">⚠ CRITICAL:</span> TRANSMIT THESE CREDENTIALS TO THE SUBJECT IMMEDIATELY. DATA PURGE INITIATED. PASSWORD RECOVERY DISABLED.
                             </p>
                         </div>
                     </div>
                 </div>
-                <div className="flex gap-4">
-                    <Button onClick={() => router.push('/admin')} className="flex-1">
-                        Back to Dashboard
-                    </Button>
-                    <Button onClick={() => window.location.reload()} variant="secondary" className="flex-1">
-                        Add Another Employee
-                    </Button>
+                <div className="flex gap-6">
+                    <button onClick={() => router.push('/admin')} className="flex-1 bg-black text-white text-[10px] font-black py-4 border border-black uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-all shadow-[6px_6px_0_0_#000] active:shadow-none">RETURN_TO_BASE</button>
+                    <button onClick={() => window.location.reload()} className="flex-1 bg-white text-black text-[10px] font-black py-4 border border-black uppercase tracking-[0.2em] hover:bg-gray-100 transition-all shadow-[6px_6px_0_0_#000] active:shadow-none">INITIALIZE_ANOTHER</button>
                 </div>
             </div>
         );
     }
 
     return (
-        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-12">
             {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-red-800 text-sm font-medium">{error}</p>
+                <div className="p-6 bg-red-600 border border-black shadow-[4px_4px_0_0_#000] flex items-center gap-4">
+                    <div className="w-8 h-8 bg-white flex items-center justify-center font-black text-red-600">!</div>
+                    <p className="text-white text-[10px] font-black uppercase tracking-widest font-mono">PROTOCOL_ERROR: {error}</p>
                 </div>
             )}
 
-            {/* Personal Information - REQUIRED */}
-            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
-                <h3 className="text-lg font-bold mb-1">Personal Information</h3>
-                <p className="text-sm text-gray-500 mb-4">* Required fields</p>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            First Name <span className="text-red-500">*</span>
-                        </label>
-                        <Input name="firstName" value={formData.firstName} onChange={handleChange} required className={!formData.firstName ? 'border-red-300' : ''} />
+            {/* General Grid Layout for all sections */}
+            <div className="space-y-12 pb-20">
+                {/* Personal Information */}
+                <div>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-2 h-8 bg-black"></div>
+                        <h3 className="text-[10px] font-black text-black uppercase tracking-[0.4em] font-mono italic">01 // PERSONAL_PROFILE [MANDATORY]</h3>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            Last Name <span className="text-red-500">*</span>
-                        </label>
-                        <Input name="lastName" value={formData.lastName} onChange={handleChange} required className={!formData.lastName ? 'border-red-300' : ''} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            Email <span className="text-red-500">*</span>
-                        </label>
-                        <Input type="email" name="email" value={formData.email} onChange={handleChange} required className={!formData.email ? 'border-red-300' : ''} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Phone (Optional)</label>
-                        <Input name="phone" value={formData.phone} onChange={handleChange} placeholder="10 digits" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Date of Birth (Optional)</label>
-                        <Input type="date" name="dateOfBirth" value={formData.dateOfBirth} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Gender (Optional)</label>
-                        <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500">
-                            <option value="">Select</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Professional Information - REQUIRED */}
-            <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-500">
-                <h3 className="text-lg font-bold mb-1">Professional Information</h3>
-                <p className="text-sm text-gray-500 mb-4">* Required fields</p>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            Job Position <span className="text-red-500">*</span>
-                        </label>
-                        <Input name="jobPosition" value={formData.jobPosition} onChange={handleChange} required className={!formData.jobPosition ? 'border-red-300' : ''} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            Department <span className="text-red-500">*</span>
-                        </label>
-                        <Input name="department" value={formData.department} onChange={handleChange} required className={!formData.department ? 'border-red-300' : ''} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">
-                            Date of Joining <span className="text-red-500">*</span>
-                        </label>
-                        <Input type="date" name="dateOfJoining" value={formData.dateOfJoining} onChange={handleChange} required className={!formData.dateOfJoining ? 'border-red-300' : ''} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Manager (Optional)</label>
-                        <Input name="manager" value={formData.manager} onChange={handleChange} />
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-8 bg-white border border-black p-10 shadow-[8px_8px_0_0_#000]">
+                        {[
+                            { label: 'IDENTIFIER:FIRST_NAME', name: 'firstName', type: 'text', required: true },
+                            { label: 'IDENTIFIER:LAST_NAME', name: 'lastName', type: 'text', required: true },
+                            { label: 'DIGITAL_ADDRESS:EMAIL', name: 'email', type: 'email', required: true },
+                            { label: 'TELECOM:PHONE_NUMBER', name: 'phone', type: 'text', placeholder: '10 DIGITS' },
+                            { label: 'CHRONO:DATE_OF_BIRTH', name: 'dateOfBirth', type: 'date' },
+                        ].map((field) => (
+                            <div key={field.name} className="space-y-2">
+                                <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block font-mono">
+                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                </label>
+                                <input
+                                    type={field.type}
+                                    name={field.name}
+                                    value={formData[field.name]}
+                                    onChange={handleChange}
+                                    required={field.required}
+                                    placeholder={field.placeholder}
+                                    className="w-full px-4 py-3 border border-black text-[10px] font-black uppercase outline-none focus:bg-gray-50 transition-all font-mono italic placeholder:text-gray-200"
+                                />
+                            </div>
+                        ))}
+                        <div className="space-y-2">
+                            <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block font-mono">BIOLOGY:GENDER_SELECT</label>
+                            <select
+                                name="gender"
+                                value={formData.gender}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 border border-black text-[10px] font-black uppercase outline-none focus:bg-gray-50 transition-all font-mono italic appearance-none"
+                            >
+                                <option value="">NULL</option>
+                                <option value="Male">MALE</option>
+                                <option value="Female">FEMALE</option>
+                                <option value="Other">OTHER</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Optional Fields */}
-            <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-bold mb-4">Additional Information (Optional)</h3>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Bank Name</label>
-                        <Input name="bankName" value={formData.bankName} onChange={handleChange} />
+                {/* Professional Information */}
+                <div>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-2 h-8 bg-black"></div>
+                        <h3 className="text-[10px] font-black text-black uppercase tracking-[0.4em] font-mono italic">02 // PROFESSIONAL_HIERARCHY [MANDATORY]</h3>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Account Number</label>
-                        <Input name="accountNumber" value={formData.accountNumber} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">IFSC Code</label>
-                        <Input name="ifscCode" value={formData.ifscCode} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">PAN Number</label>
-                        <Input name="panNumber" value={formData.panNumber} onChange={handleChange} />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-2">Monthly Salary (₹)</label>
-                        <Input type="number" name="monthlyWage" value={formData.monthlyWage} onChange={handleChange} placeholder="50000" />
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-8 bg-white border border-black p-10 shadow-[8px_8px_0_0_#000]">
+                        {[
+                            { label: 'FUNCTIONAL_ROLE:POSITION', name: 'jobPosition', required: true },
+                            { label: 'ORGANIZATIONAL_UNIT:DEPT', name: 'department', required: true },
+                            { label: 'CYCLE_INIT:JOINING_DATE', name: 'dateOfJoining', type: 'date', required: true },
+                            { label: 'AUTHORITY:MANAGER', name: 'manager' },
+                        ].map((field) => (
+                            <div key={field.name} className="space-y-2">
+                                <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block font-mono">
+                                    {field.label} {field.required && <span className="text-red-500">*</span>}
+                                </label>
+                                <input
+                                    type={field.type || 'text'}
+                                    name={field.name}
+                                    value={formData[field.name]}
+                                    onChange={handleChange}
+                                    required={field.required}
+                                    className="w-full px-4 py-3 border border-black text-[10px] font-black uppercase outline-none focus:bg-gray-50 transition-all font-mono italic"
+                                />
+                            </div>
+                        ))}
                     </div>
                 </div>
-            </div>
 
-            <Button type="submit" loading={loading} className="w-full">
-                Create Employee & Generate Credentials
-            </Button>
+                {/* Financial Parameters */}
+                <div>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div className="w-2 h-8 bg-gray-400"></div>
+                        <h3 className="text-[10px] font-black text-black uppercase tracking-[0.4em] font-mono italic">03 // FINANCIAL_NODE_PARAMETERS [OPTIONAL]</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-10 gap-y-8 bg-white border border-black p-10 shadow-[8px_8px_0_0_#000]">
+                        {[
+                            { label: 'BANKING:INSTITUTION_NAME', name: 'bankName' },
+                            { label: 'BANKING:ACCOUNT_NUMBER', name: 'accountNumber' },
+                            { label: 'BANKING:IFSC_CODE', name: 'ifscCode' },
+                            { label: 'TAXATION:PAN_IDENTIFIER', name: 'panNumber' },
+                            { label: 'REMUNERATION:MONTHLY_WAGE', name: 'monthlyWage', type: 'number', placeholder: '50000' },
+                        ].map((field) => (
+                            <div key={field.name} className="space-y-2">
+                                <label className="text-[8px] font-black text-gray-400 uppercase tracking-widest block font-mono">
+                                    {field.label}
+                                </label>
+                                <input
+                                    type={field.type || 'text'}
+                                    name={field.name}
+                                    value={formData[field.name]}
+                                    onChange={handleChange}
+                                    placeholder={field.placeholder}
+                                    className="w-full px-4 py-3 border border-black text-[10px] font-black uppercase outline-none focus:bg-gray-50 transition-all font-mono italic placeholder:text-gray-200"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-black text-white text-xs font-black py-6 border-b-4 border-r-4 border-blue-600 uppercase tracking-[0.4em] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none transition-all active:translate-x-1 active:translate-y-1 shadow-[8px_8px_0_0_#000] disabled:opacity-50"
+                >
+                    {loading ? 'EXECUTING_INITIALIZATION_PROTOCOL...' : 'COMMIT_SYSTEM_REGISTRATION'}
+                </button>
+            </div>
         </form>
     );
 }

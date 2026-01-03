@@ -8,20 +8,34 @@ export const metadata = {
 
 export default function RegisterPage() {
     return (
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md">
-                <CardHeader className="text-center">
-                    <div className="mb-4">
-                        <h1 className="text-3xl font-bold text-primary-600">Dayflow</h1>
-                        <p className="text-sm text-gray-500">Human Resource Management System</p>
+        <div className="min-h-screen bg-white relative overflow-hidden flex items-center justify-center p-4">
+            {/* Industrial Grid Background */}
+            <div className="absolute inset-0 z-0 opacity-[0.02]"
+                style={{ backgroundImage: 'linear-gradient(#000 1.5px, transparent 1.5px), linear-gradient(90deg, #000 1.5px, transparent 1.5px)', backgroundSize: '30px 30px' }}>
+            </div>
+
+            <div className="w-full max-w-2xl relative z-10">
+                {/* Logo and Branding */}
+                <div className="mb-8 text-center">
+                    <div className="inline-block border-[3px] border-black p-3 mb-2 bg-white shadow-[6px_6px_0_0_#000]">
+                        <h1 className="text-3xl font-black text-black tracking-widest italic uppercase">DAYFLOW_HR</h1>
                     </div>
-                    <CardTitle className="text-2xl">Create HR Account</CardTitle>
-                    <p className="text-sm text-gray-600">Register your company and start managing employees</p>
-                </CardHeader>
-                <CardContent>
+                </div>
+
+                {/* Register Box */}
+                <div className="bg-white border-[3px] border-black p-10 shadow-[20px_20px_0_0_#000] relative">
+                    <div className="absolute -top-4 -left-4 bg-blue-600 text-white px-4 py-1 text-[10px] font-black uppercase tracking-widest font-mono italic border-2 border-black">
+                        PROTOCOL:ENTITY_CREATION
+                    </div>
+
+                    <div className="mb-10 border-b-2 border-black pb-6">
+                        <h2 className="text-3xl font-black text-black uppercase italic leading-none mb-2">INITIALIZE_HR_ACCOUNT</h2>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest font-mono italic">Register corporate entity and administrative credentials</p>
+                    </div>
+
                     <SignupForm />
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }
