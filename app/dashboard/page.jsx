@@ -8,47 +8,6 @@ import Link from 'next/link';
 
 export default function EmployeeDashboardPage() {
     const { data: session } = useSession();
-    const router = useRouter();
-    const [employee, setEmployee] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('resume');
-
-    useEffect(() => {
-        if (session?.user?.id) {
-            fetchEmployeeData();
-        }
-    }, [session]);
-
-    const fetchEmployeeData = async () => {
-        try {
-            const response = await fetch(`/api/admin/employees/${session.user.id}`);
-            const data = await response.json();
-            setEmployee(data.employee);
-        } catch (error) {
-            console.error('Failed to fetch employee data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="mt-4 text-gray-600">Loading profile...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!employee) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <p className="text-gray-600">Employee data not found.</p>
-            </div>
-        );
-    }
 
     // Mock data - will be replaced with API calls
     const attendanceSummary = {
