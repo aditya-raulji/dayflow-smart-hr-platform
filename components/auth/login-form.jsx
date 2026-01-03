@@ -57,14 +57,17 @@ export function LoginForm() {
 
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email <span className="text-red-500">*</span>
+                    Employee ID / Email <span className="text-red-500">*</span>
                 </label>
                 <Input
                     {...register('email')}
-                    type="email"
-                    placeholder="Enter your email"
+                    type="text"
+                    placeholder="Enter your Employee ID or Email"
                     error={errors.email?.message}
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                    Example: OIJODO20220001
+                </p>
             </div>
 
             <div>
@@ -82,6 +85,13 @@ export function LoginForm() {
             <Button type="submit" loading={loading}>
                 Sign In
             </Button>
+
+            <p className="text-sm text-gray-600 text-center">
+                Don't have an account?{' '}
+                <a href="/auth/register" className="text-primary-600 hover:underline">
+                    Register as HR
+                </a>
+            </p>
         </form>
     );
 }
