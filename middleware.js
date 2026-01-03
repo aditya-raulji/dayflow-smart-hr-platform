@@ -29,6 +29,15 @@ export async function middleware(request) {
         }
     }
 
+    // Redirect root to appropriate dashboard
+    if (token && pathname === '/') {
+        if (token.role === 'ADMIN') {
+            return NextResponse.redirect(new URL('/admin', request.url));
+        } else {
+            return NextResponse.redirect(new URL('/dashboard', request.url));
+        }
+    }
+
     // Role-based access control for protected routes
     if (token) {
         // Admin routes

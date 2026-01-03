@@ -1,15 +1,56 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword, generateVerificationToken } from '@/lib/auth-utils';
-import { hrSignupSchema } from '@/lib/validations/auth';
+import { hashPassword, generateVerificationToken, generateTokenExpiry } from '@/lib/auth-utils';
+import { signupSchema } from '@/lib/validations/auth';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 export async function POST(request) {
     try {
-        const body = await request.json();
+        const formData = await request.formData();
 
-        // Validate input (without logo in schema)
-        const { companyLogo, ...validationData } = body;
-        const validatedData = hrSignupSchema.parse(validationData);
+        // Extract form data
+        const companyName = formData.get('companyName');
+        const name = formData.get('name');
+        const email = formData.get('email');
+        const phone = formData.get('phone') || '';
+        const password = formData.get('password');
+        const confirmPassword = formData.get('confirmPassword');
+        const companyLogo = formData.get('companyLogo');
+
+        // Validate file if provided
+        if (companyLogo && companyLogo.size > 0) {
+            // Check file size (5MB max)
+            if (companyLogo.size > 5 * 1024 * 1024) {
+                return NextResponse.json(
+                    { error: 'Logo file size must be less than 5MB' },
+                    { status: 400 }
+                );
+            }
+
+            // Check file type
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+            if (!allowedTypes.includes(companyLogo.type)) {
+                return NextResponse.json(
+                    { error: 'Logo must be a valid image file (JPEG, PNG, or WebP)' },
+                    { status: 400 }
+                );
+            }
+        }
+
+        // Prepare data for validation (without file, as Zod can't validate File objects from FormData)
+        const dataForValidation = {
+            companyName,
+            name,
+            email,
+            phone: phone || '',
+            password,
+            confirmPassword,
+        };
+
+        // Validate input
+        const validatedData = signupSchema.parse(dataForValidation);
 
         // Check if email already exists
         const existingUser = await prisma.user.findUnique({
@@ -30,9 +71,34 @@ export async function POST(request) {
 
         if (existingCompany) {
             return NextResponse.json(
-                { error: 'Company name already registered' },
+                { error: 'Company name already exists' },
                 { status: 400 }
             );
+        }
+
+        // Handle logo upload
+        let logoUrl = null;
+        if (companyLogo && companyLogo.size > 0) {
+            const bytes = await companyLogo.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+
+            // Create uploads directory if it doesn't exist
+            const uploadsDir = join(process.cwd(), 'public', 'uploads', 'logos');
+            if (!existsSync(uploadsDir)) {
+                await mkdir(uploadsDir, { recursive: true });
+            }
+
+            // Generate unique filename
+            const timestamp = Date.now();
+            const fileExtension = companyLogo.name.split('.').pop();
+            const filename = `logo_${timestamp}.${fileExtension}`;
+            const filepath = join(uploadsDir, filename);
+
+            // Save file
+            await writeFile(filepath, buffer);
+
+            // Store relative URL
+            logoUrl = `/uploads/logos/${filename}`;
         }
 
         // Hash password
@@ -41,15 +107,27 @@ export async function POST(request) {
         // Generate verification token
         const { token, expiry } = generateVerificationToken();
 
-        // Create company and HR user in a transaction
-        const result = await prisma.$transaction(async (tx) => {
-            // Create company with logo
-            const company = await tx.company.create({
-                data: {
-                    name: validatedData.companyName,
-                    logo: companyLogo || null,
-                },
-            });
+        // Create company first
+        const company = await prisma.company.create({
+            data: {
+                name: validatedData.companyName,
+                logo: logoUrl,
+            },
+        });
+
+        // Create HR user (role is forced to ADMIN)
+        const user = await prisma.user.create({
+            data: {
+                email: validatedData.email,
+                password: hashedPassword,
+                name: validatedData.name,
+                phone: validatedData.phone || null,
+                role: 'ADMIN', // Force ADMIN role for HR signup
+                companyId: company.id,
+                verificationToken,
+                verificationTokenExpiry,
+            },
+        });
 
             // Create HR user
             const user = await tx.user.create({
@@ -74,12 +152,13 @@ export async function POST(request) {
 
         return NextResponse.json(
             {
-                message: 'HR account created successfully',
+                message: 'HR registration successful! Please verify your email.',
+                verificationUrl, // Remove this in production
                 user: {
-                    id: result.user.id,
-                    email: result.user.email,
-                    name: result.user.name,
-                    company: result.company.name,
+                    id: user.id,
+                    email: user.email,
+                    name: user.name,
+                    companyName: company.name,
                 },
                 // For development only - remove in production
                 ...(process.env.NODE_ENV === 'development' && {
@@ -100,7 +179,7 @@ export async function POST(request) {
         }
 
         return NextResponse.json(
-            { error: 'Failed to create account' },
+            { error: error.message || 'An error occurred during registration' },
             { status: 500 }
         );
     }
