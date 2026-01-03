@@ -1,5 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
 
 generator client {
   provider = "prisma-client-js"
@@ -48,6 +47,7 @@ model User {
   jobDetails    JobDetails?
   salaryStructure SalaryStructure?
   documents     Document[]
+  attendance    Attendance[]
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -155,4 +155,34 @@ model Document {
   updatedAt DateTime @updatedAt
 
   @@map("documents")
+}
+
+model Attendance {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  date      DateTime @default(now())
+  checkIn   DateTime?
+  checkOut  DateTime?
+  status    String?  // Present, Absent, Half Day, etc.
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("attendances")
+}
+
+// For tracking employee ID serial numbers per year
+model CompanySettings {
+  id    String @id @default(cuid())
+  companyId String
+  year  Int
+  lastSerialNumber Int @default(0)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, year])
+  @@map("company_settings")
 }
