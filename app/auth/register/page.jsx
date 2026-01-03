@@ -20,9 +20,9 @@ export default function RegisterPage() {
                 {/* Registration Card */}
                 <Card>
                     <CardHeader>
-                        <CardTitle>Create Account</CardTitle>
+                        <CardTitle>Create HR Account</CardTitle>
                         <CardDescription>
-                            Join Dayflow HR Management System
+                            Register your company and create your HR account
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
