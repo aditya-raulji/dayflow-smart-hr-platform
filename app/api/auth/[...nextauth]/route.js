@@ -8,21 +8,29 @@ export const authOptions = {
         CredentialsProvider({
             name: 'Credentials',
             credentials: {
-                email: { label: 'Email', type: 'email' },
+                email: { label: 'Employee ID / Email', type: 'text' },
                 password: { label: 'Password', type: 'password' },
             },
             async authorize(credentials) {
                 if (!credentials?.email || !credentials?.password) {
-                    throw new Error('Email and password are required');
+                    throw new Error('Employee ID/Email and password are required');
                 }
 
-                // Find user by email
-                const user = await prisma.user.findUnique({
-                    where: { email: credentials.email.toLowerCase() },
+                // Find user by email OR employeeId
+                const user = await prisma.user.findFirst({
+                    where: {
+                        OR: [
+                            { email: credentials.email.toLowerCase() },
+                            { employeeId: credentials.email.toUpperCase() }, // Employee ID is uppercase
+                        ],
+                    },
+                    include: {
+                        company: true,
+                    },
                 });
 
                 if (!user) {
-                    throw new Error('Invalid email or password');
+                    throw new Error('Invalid login credentials');
                 }
 
                 // Check if email is verified
@@ -37,7 +45,7 @@ export const authOptions = {
                 );
 
                 if (!isValidPassword) {
-                    throw new Error('Invalid email or password');
+                    throw new Error('Invalid login credentials');
                 }
 
                 // Return user object (password excluded)
@@ -47,6 +55,8 @@ export const authOptions = {
                     name: user.name,
                     role: user.role,
                     employeeId: user.employeeId,
+                    companyId: user.companyId,
+                    companyName: user.company?.name,
                 };
             },
         }),
@@ -57,6 +67,8 @@ export const authOptions = {
                 token.id = user.id;
                 token.role = user.role;
                 token.employeeId = user.employeeId;
+                token.companyId = user.companyId;
+                token.companyName = user.companyName;
             }
             return token;
         },
@@ -65,6 +77,8 @@ export const authOptions = {
                 session.user.id = token.id;
                 session.user.role = token.role;
                 session.user.employeeId = token.employeeId;
+                session.user.companyId = token.companyId;
+                session.user.companyName = token.companyName;
             }
             return session;
         },
@@ -82,4 +96,5 @@ export const authOptions = {
 
 const handler = NextAuth(authOptions);
 
+// Export for App Router
 export { handler as GET, handler as POST };

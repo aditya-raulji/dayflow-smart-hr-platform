@@ -1,35 +1,36 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword, generateVerificationToken, generateTokenExpiry } from '@/lib/auth-utils';
-import { signupSchema } from '@/lib/validations/auth';
+import { hashPassword, generateVerificationToken } from '@/lib/auth-utils';
+import { hrSignupSchema } from '@/lib/validations/auth';
 
 export async function POST(request) {
     try {
         const body = await request.json();
 
-        // Validate input
-        const validatedData = signupSchema.parse(body);
+        // Validate input (without logo in schema)
+        const { companyLogo, ...validationData } = body;
+        const validatedData = hrSignupSchema.parse(validationData);
 
         // Check if email already exists
-        const existingEmail = await prisma.user.findUnique({
+        const existingUser = await prisma.user.findUnique({
             where: { email: validatedData.email },
         });
 
-        if (existingEmail) {
+        if (existingUser) {
             return NextResponse.json(
                 { error: 'Email already registered' },
                 { status: 400 }
             );
         }
 
-        // Check if employee ID already exists
-        const existingEmployeeId = await prisma.user.findUnique({
-            where: { employeeId: validatedData.employeeId },
+        // Check if company name already exists
+        const existingCompany = await prisma.company.findUnique({
+            where: { name: validatedData.companyName },
         });
 
-        if (existingEmployeeId) {
+        if (existingCompany) {
             return NextResponse.json(
-                { error: 'Employee ID already exists' },
+                { error: 'Company name already registered' },
                 { status: 400 }
             );
         }
@@ -38,39 +39,52 @@ export async function POST(request) {
         const hashedPassword = await hashPassword(validatedData.password);
 
         // Generate verification token
-        const verificationToken = generateVerificationToken();
-        const verificationTokenExpiry = generateTokenExpiry();
+        const { token, expiry } = generateVerificationToken();
 
-        // Create user
-        const user = await prisma.user.create({
-            data: {
-                employeeId: validatedData.employeeId,
-                email: validatedData.email,
-                password: hashedPassword,
-                name: validatedData.name,
-                phone: validatedData.phone || null,
-                role: validatedData.role,
-                verificationToken,
-                verificationTokenExpiry,
-            },
+        // Create company and HR user in a transaction
+        const result = await prisma.$transaction(async (tx) => {
+            // Create company with logo
+            const company = await tx.company.create({
+                data: {
+                    name: validatedData.companyName,
+                    logo: companyLogo || null,
+                },
+            });
+
+            // Create HR user
+            const user = await tx.user.create({
+                data: {
+                    email: validatedData.email,
+                    password: hashedPassword,
+                    name: validatedData.name,
+                    phone: validatedData.phone,
+                    role: 'ADMIN', // HR is ADMIN
+                    companyId: company.id,
+                    verificationToken: token,
+                    verificationTokenExpiry: expiry,
+                    emailVerified: true, // Auto-verify HR accounts
+                },
+            });
+
+            return { company, user };
         });
 
-        // In production, send email with verification link
-        // For now, we'll return the token in the response (for development only)
-        const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${verificationToken}`;
-
-        console.log('Verification URL:', verificationUrl);
+        // In production, send verification email here
+        const verificationUrl = `${process.env.NEXTAUTH_URL}/auth/verify-email?token=${token}`;
 
         return NextResponse.json(
             {
-                message: 'Registration successful! Please verify your email.',
-                verificationUrl, // Remove this in production
+                message: 'HR account created successfully',
                 user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    employeeId: user.employeeId,
+                    id: result.user.id,
+                    email: result.user.email,
+                    name: result.user.name,
+                    company: result.company.name,
                 },
+                // For development only - remove in production
+                ...(process.env.NODE_ENV === 'development' && {
+                    verificationUrl,
+                }),
             },
             { status: 201 }
         );
@@ -86,7 +100,7 @@ export async function POST(request) {
         }
 
         return NextResponse.json(
-            { error: 'An error occurred during registration' },
+            { error: 'Failed to create account' },
             { status: 500 }
         );
     }
